@@ -7,39 +7,42 @@ import {
   Typography, 
   Stepper,
   Step,
-  StepLabel
+  StepLabel,
+  Alert
 } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 function Signup() {
   const [activeStep, setActiveStep] = useState(0);
+  const [userId, setUserId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: ''
   });
   const [otp, setOtp] = useState('');
-  const { signup } = useAuth();
+  const [error, setError] = useState('');
+  const { initiateSignup, verifyOTP, resendOTP } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    
     try {
-      // First step: Send signup details and request OTP
       if (activeStep === 0) {
-        // TODO: Implement API call to send OTP to email
-        // await sendOTP(formData.email);
+        // Step 1: Send signup details and get OTP
+        const newUserId = await initiateSignup(formData);
+        setUserId(newUserId);
         setActiveStep(1);
-      } 
-      // Second step: Verify OTP and complete signup
-      else {
-        // TODO: Implement API call to verify OTP
-        await signup(formData.email, formData.password, formData.name, otp);
+      } else {
+        // Step 2: Verify OTP
+        await verifyOTP(userId, otp);
         navigate('/');
       }
     } catch (error) {
-      console.error('Signup failed:', error);
+      setError(error.toString());
     }
   };
 
@@ -52,11 +55,10 @@ function Signup() {
 
   const handleResendOTP = async () => {
     try {
-      // TODO: Implement API call to resend OTP
-      // await resendOTP(formData.email);
-      console.log('OTP resent');
+      await resendOTP(userId);
+      setError('');
     } catch (error) {
-      console.error('Failed to resend OTP:', error);
+      setError(error.toString());
     }
   };
 
@@ -67,12 +69,18 @@ function Signup() {
           Sign Up
         </Typography>
 
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
           <Step>
             <StepLabel>Account Details</StepLabel>
           </Step>
           <Step>
-            <StepLabel>Verify OTP</StepLabel>
+            <StepLabel>Verify Email</StepLabel>
           </Step>
         </Stepper>
 
